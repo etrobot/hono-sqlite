@@ -1,0 +1,22 @@
+{
+  "name": "hono-sqlite-server",
+  "version": "1.0.0",
+  "description": "A SQLite server built with Hono",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.8.2",
+    "better-sqlite3": "^9.4.3",
+    "hono": "^4.1.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.9",
+    "@types/node": "^20.11.24",
+    "nodemon": "^3.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+} 
