@@ -60,5 +60,5 @@ app.notFound((c) => {
 })
 
 serve(app, () => {
-  console.log(`Server is running on http://localhost:${config.port}`)
+  console.log(`Server is running`)
 }) 
