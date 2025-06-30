@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import ListComponent from './components/ListComponent';
+import AddFormComponent from './components/AddFormComponent';
+import LoginComponent from './components/LoginComponent';
 
 function App() {
   const [projects, setProjects] = useState<Record<string, Record<string, string>>>({});
@@ -11,11 +13,11 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const storedPassword = localStorage.getItem('authPassword');
-    if (storedPassword) {
-      setPassword(storedPassword);
+    const stopinkPassword = localStorage.getItem('authPassword');
+    if (stopinkPassword) {
+      setPassword(stopinkPassword);
       setIsAuthenticated(true);
-      fetchConfig(storedPassword);
+      fetchConfig(stopinkPassword);
     }
   }, []);
 
@@ -36,8 +38,6 @@ function App() {
       .then((data) => setConfig(data))
       .catch((error) => console.error('Error fetching config:', error));
   };
-
-
 
   // 新增项目
   const handleAddProject = async () => {
@@ -69,16 +69,16 @@ function App() {
     }
   };
 
-  // 删除项目
+  // 删项目
   const handleDeleteProject = async (name: string) => {
-    if (!window.confirm(`确定要删除项目 ${name} 吗？`)) return;
+    if (!window.confirm(`确定要删项目 ${name} 吗？`)) return;
     await fetch(`/api/project/${encodeURIComponent(name)}`, {
       method: 'DELETE',
       headers: {
         'X-Auth-Password': password,
       },
     });
-    // 如果删除的是当前选中项目，重置选中
+    // 如果删的是当前选中项目，重置选中
     if (selectedProject === name) setSelectedProject('');
     fetchProjects();
   };
@@ -122,9 +122,9 @@ function App() {
     fetchProjects();
   };
 
-  // 删除 key
+  // 删 key
   const handleDeleteKey = async (key: string) => {
-    if (!window.confirm(`确定要删除 key: ${key} 吗？`)) return;
+    if (!window.confirm(`确定要删 key: ${key} 吗？`)) return;
     const projectData = { ...(projects[selectedProject] || {}) };
     delete projectData[key];
     await fetch(`/api/project/${encodeURIComponent(selectedProject)}`, {
@@ -138,32 +138,23 @@ function App() {
     fetchProjects();
   };
 
-
-  // 编辑项目（弹窗输入新值）
-  const handleEdit = async (key: string, oldValue: string) => {
-    const value = window.prompt(`请输入新的值 (key: ${key})`, oldValue);
-    if (value === null || value === oldValue) return;
-    await fetch(`/api/project/${encodeURIComponent(key)}`, {
+  // 复制 key
+  const handleCopyKey = async (key: string, value: string) => {
+    const projectData = { ...(projects[selectedProject] || {}) };
+    const newKey = window.prompt(`请输入新 key (当前值: ${key})`);
+    if (!newKey) return;
+    if (Object.prototype.hasOwnProperty.call(projectData, newKey)) {
+      alert('该 key 已存在，不能重复添加！');
+      return;
+    }
+    projectData[newKey] = value;
+    await fetch(`/api/project/${encodeURIComponent(selectedProject)}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'X-Auth-Password': password,
       },
-      body: JSON.stringify({ value }),
-    });
-    fetchProjects();
-  };
-
-  // 删除项目
-  const handleDelete = async (keyToDelete: string) => {
-    if (!window.confirm(`确定要删除项目: ${keyToDelete} 吗？`)) {
-      return;
-    }
-    await fetch(`/api/project/${encodeURIComponent(keyToDelete)}`, {
-      method: 'DELETE',
-      headers: {
-        'X-Auth-Password': password,
-      },
+      body: JSON.stringify({ data: projectData }),
     });
     fetchProjects();
   };
@@ -219,44 +210,45 @@ const [config, setConfig] = useState({
 
 // 首次挂载拉取项目
   useEffect(() => {
-    const storedPassword = localStorage.getItem('authPassword');
-    if (storedPassword) {
-      setPassword(storedPassword);
+    const stopinkPassword = localStorage.getItem('authPassword');
+    if (stopinkPassword) {
+      setPassword(stopinkPassword);
       setIsAuthenticated(true);
-      fetchProjects(storedPassword);
+      fetchProjects(stopinkPassword);
     }
   }, []);
 
-  const handleSave = () => {
-    fetch('/api/config', {
+  // 复制项目
+  const handleCopyProject = async (name: string) => {
+    const newName = window.prompt(`请输入新项目名 (当前: ${name})`);
+    if (!newName) return;
+    if (projects[newName]) {
+      alert('该项目名已存在，不能重复添加！');
+      return;
+    }
+    const data = { ...(projects[name] || {}) };
+    await fetch('/api/project', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Auth-Password': password,
       },
-      body: JSON.stringify(config),
+      body: JSON.stringify({ name: newName, data }),
     });
+    fetchProjects();
   };
 
   return (
-    <div className="container max-w-6xl mx-auto p-4">
+    <div className="container max-w-7xl mx-auto p-3 dark bg-darcula-bg text-darcula-fg min-h-screen">
       {!isAuthenticated ? (
-        <div className="flex flex-col items-center justify-center h-screen">
-          <h1 className="text-2xl font-bold mb-4">Enter Password</h1>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="border p-2 mb-4"
-          />
-          <button onClick={handleLogin} className="bg-blue-500 text-white p-2">
-            Login
-          </button>
-        </div>
+        <LoginComponent
+          password={password}
+          setPassword={setPassword}
+          handleLogin={handleLogin}
+        />
       ) : (
         <div>
-          <h1 className="text-2xl font-bold mb-6">项目管理</h1>
+          <h1 className="text-2xl font-bold mb-6">配置管理</h1>
           <div className="flex gap-8">
   <div className="w-1/3">
     <ListComponent
@@ -265,55 +257,41 @@ const [config, setConfig] = useState({
       emptyMessage="暂无项目"
       type="project"
       onDelete={(item) => handleDeleteProject(item.key)}
+      onCopy={(item) => handleCopyProject(item.key)}
       addFormComponent={
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="新项目名"
-            value={newProjectName}
-            onChange={(e) => setNewProjectName(e.target.value)}
-            className="border p-2 flex-1"
-          />
-          <button
-            onClick={handleAddProject}
-            className="bg-blue-500 text-white p-2 rounded"
-          >
-            添加项目
-          </button>
-        </div>
+        <AddFormComponent
+          type="project"
+          keyValue={newProjectName}
+          onKeyChange={e => setNewProjectName(e.target.value)}
+          onAdd={handleAddProject}
+          keyPlaceholder="新项目名"
+          addButtonText="添加项目"
+        />
       }
+      selectedId={selectedProject}
+      onSelect={item => setSelectedProject(item.key)}
     />
   </div>
   <div className="w-2/3">
               {selectedProject ? (
                 <ListComponent
-                  title={`项目：${selectedProject}`}
+                  title={`${selectedProject}`}
                   items={Object.entries(projects[selectedProject] || {}).map(([key, value]) => ({ id: key, key, value }))}
                   onEdit={(item) => handleEditKey(item.key, item.value as string)}
                   onDelete={(item) => handleDeleteKey(item.key)}
+                  onCopy={(item) => handleCopyKey(item.key, item.value as string)}
                   addFormComponent={
-                    <div className="flex gap-2 mt-4">
-                      <input
-                        type="text"
-                        placeholder="Key"
-                        value={newKey}
-                        onChange={e => setNewKey((e.target as HTMLInputElement).value)}
-                        className="border p-2 flex-1"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Value"
-                        value={newValue}
-                        onChange={e => setNewValue((e.target as HTMLInputElement).value)}
-                        className="border p-2 flex-1"
-                      />
-                      <button
-                        onClick={handleAddKey}
-                        className="bg-blue-500 text-white p-2 rounded border flex-1"
-                      >
-                        添加Key
-                      </button>
-                    </div>
+                    <AddFormComponent
+                      type="default"
+                      keyValue={newKey}
+                      valueValue={newValue}
+                      onKeyChange={e => setNewKey((e.target as HTMLInputElement).value)}
+                      onValueChange={e => setNewValue((e.target as HTMLInputElement).value)}
+                      onAdd={handleAddKey}
+                      keyPlaceholder="Key"
+                      valuePlaceholder="Value"
+                      addButtonText="添加Key"
+                    />
                   }
                 />
               ) : (

@@ -35,7 +35,7 @@ app.post('/api/config', async (c) => {
   return c.json({ message: 'Config updated successfully' });
 });
 
-// 删除 project 下指定 key
+// 删 project 下指定 key
 app.delete('/api/config/:key', async (c) => {
   const key = c.req.param('key');
   const content = await fs.readFile('db.json', 'utf-8');
@@ -58,7 +58,7 @@ app.get('/api/project', async (c) => {
 // 新增项目
 app.post('/api/project', async (c) => {
   const { name, data } = await c.req.json();
-  if (!name) return c.json({ message: 'Project name is required' }, 400);
+  if (!name) return c.json({ message: 'Project name is requipink' }, 400);
   const content = await fs.readFile('db.json', 'utf-8');
   const config = JSON.parse(content);
   if (!config.projects) config.projects = {};
@@ -82,7 +82,7 @@ app.put('/api/project/:name', async (c) => {
   return c.json({ message: 'Project updated successfully' });
 });
 
-// 删除项目
+// 删项目
 app.delete('/api/project/:name', async (c) => {
   const name = c.req.param('name');
   const content = await fs.readFile('db.json', 'utf-8');

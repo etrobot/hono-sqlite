@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html.dark {
+    @apply bg-darcula-bg text-darcula-fg;
+  }
+  body {
+    @apply bg-darcula-bg text-darcula-fg;
+  }
+}
+
+@layer components {
+  input {
+    @apply bg-darcula-card text-darcula-fg border border-darcula-border;
+  }
+}
