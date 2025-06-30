@@ -2,7 +2,9 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import 'dotenv/config';
 import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 import * as fs from 'fs/promises';
+import path from 'path';
 
 const app = new Hono();
 
@@ -93,6 +95,13 @@ app.delete('/api/project/:name', async (c) => {
   delete config.projects[name];
   await fs.writeFile('db.json', JSON.stringify(config, null, 2));
   return c.json({ message: `Project '${name}' deleted successfully` });
+});
+
+// Serve static files for the frontend
+app.use('/*', serveStatic({ root: './dist' }));
+app.get('*', async (c) => {
+  const file = await fs.readFile(path.join(process.cwd(), 'dist', 'index.html'), 'utf-8');
+  return c.html(file);
 });
 
 serve({ port: 3001, fetch: app.fetch }, (info) => {

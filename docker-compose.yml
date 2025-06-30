@@ -1,20 +1,23 @@
 version: '3.8'
 
 services:
-  simple-config:
+  envconfig:
     build: .
-    container_name: simple-config
+    container_name: envconfig
     restart: unless-stopped
     environment:
       - NODE_ENV=production
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.simple-config.rule=Host(`config.subx.fun`)"
-      - "traefik.http.routers.simple-config.entrypoints=websecure"
-      - "traefik.http.routers.simple-config.tls=true"
-      - "traefik.http.services.simple-config.loadbalancer.server.port=5173"
+      - "traefik.http.routers.envconfig.rule=Host(`config.subx.fun`)"
+      - "traefik.http.routers.envconfig.entrypoints=websecure"
+      - "traefik.http.routers.envconfig.tls=true"
+      - "traefik.http.routers.envconfig.tls.certresolver=letsencrypt"
+      - "traefik.http.services.envconfig.loadbalancer.server.port=5173"
     networks:
       - traefik
+    volumes:
+      - /home/ubuntu/envconfig/db.json:/app/db.json
 
 networks:
   traefik:

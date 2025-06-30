@@ -1,13 +1,10 @@
 {
   "projects": {
     "project2": {
-      "key1": "value1",
-      "k3": "v3",
-      "ddd": "ddddddd",
+      "key1": "value1dddd",
+      "k3": "v4",
+      "ddd": "xxxxxx",
       "ssssss": "value1"
-    },
-    "dfadf": {
-      "dddd": "325434523452435"
     }
   }
 }
