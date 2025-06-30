@@ -1,13 +1,21 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "commonjs",
-    "strict": true,
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM"],
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "rootDir": "./src"
+    "strict": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "rootDir": ".",
+    "outDir": "dist",
+    "allowJs": true
   },
-  "include": ["src/**/*"]
-} 
+  "include": ["src", "api", "vite.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,17 +1,21 @@
 version: '3.8'
 
 services:
-  api:
+  simple-config:
     build: .
-    ports:
-      - "5000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - sqlite-data:/app/data
-    env_file:
-      - .env
+    container_name: simple-config
     restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.simple-config.rule=Host(`config.subx.fun`)"
+      - "traefik.http.routers.simple-config.entrypoints=websecure"
+      - "traefik.http.routers.simple-config.tls=true"
+      - "traefik.http.services.simple-config.loadbalancer.server.port=5173"
+    networks:
+      - traefik
 
-volumes:
-  sqlite-data: 
+networks:
+  traefik:
+    external: true
