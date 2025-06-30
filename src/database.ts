@@ -5,11 +5,11 @@ export const initializeDb = (db: Database) => {
   db.exec(`
     CREATE TABLE IF NOT EXISTS cookies (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      domain TEXT NOT NULL,
-      cookie TEXT NOT NULL,
-      user TEXT NOT NULL,
+      project TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
       updated_at TEXT NOT NULL,
-      UNIQUE(domain, user)
+      UNIQUE(project)
     )
   `)
 }

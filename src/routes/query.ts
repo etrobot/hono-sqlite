@@ -11,9 +11,9 @@ type QueryBody = {
 
 type CookieRecord = {
   id?: number
-  domain: string
-  cookie: string
-  user: string
+  project: string
+  key: string
+  value: string
 }
 
 const queryRouter = new Hono<{ Bindings: Bindings }>()
@@ -45,27 +45,27 @@ queryRouter.post('/query', async (c) => {
   }
 })
 
-// 新增插入记录路由
+// Route to create or update a cookie record
 queryRouter.post('/cookies', async (c) => {
   try {
     const body = await c.req.json<CookieRecord>()
-    const { domain, cookie, user } = body
+    const { project, key, value } = body
     
-    if (!domain || !cookie || !user) {
-      return c.json({ error: 'domain, cookie and user are required' }, 400)
+    if (!project || !key || !value) {
+      return c.json({ error: 'project, key, and value are required' }, 400)
     }
 
     const db = c.env.DB
     
-    // 尝试更新已存在的记录
     const result = db.prepare(`
-      INSERT INTO cookies (domain, cookie, user, updated_at)
+      INSERT INTO cookies (project, key, value, updated_at)
       VALUES (?, ?, ?, datetime('now'))
-      ON CONFLICT(domain, user) 
+      ON CONFLICT(project)
       DO UPDATE SET 
-        cookie = excluded.cookie,
+        key = excluded.key,
+        value = excluded.value,
         updated_at = datetime('now')
-    `).run(domain, cookie, user)
+    `).run(project, key, value)
 
     return c.json({
       message: 'Cookie record created/updated successfully',
@@ -76,36 +76,59 @@ queryRouter.post('/cookies', async (c) => {
   }
 })
 
-// 更新记录路由 - 现在需要同时指定 domain 和 user
-queryRouter.put('/cookies/:domain/:user', async (c) => {
+// Route to update a cookie record by project
+queryRouter.put('/cookies/:project', async (c) => {
   try {
-    const domain = c.req.param('domain')
-    const user = c.req.param('user')
-    const body = await c.req.json<Partial<CookieRecord>>()
-    const { cookie } = body
+    const project = c.req.param('project')
+    const body = await c.req.json<Partial<Pick<CookieRecord, 'key' | 'value'>>>()
+    const { key, value } = body
     
-    if (!cookie) {
-      return c.json({ error: 'cookie is required' }, 400)
+    if (!key && !value) {
+      return c.json({ error: 'key or value is required for update' }, 400)
     }
 
     const db = c.env.DB
+
+    // Construct parts of the SET clause conditionally
+    const setClauses: string[] = []
+    const params: (string | undefined)[] = []
+
+    if (key !== undefined) {
+      setClauses.push('key = ?')
+      params.push(key)
+    }
+    if (value !== undefined) {
+      setClauses.push('value = ?')
+      params.push(value)
+    }
+    setClauses.push("updated_at = datetime('now')")
+    params.push(project)
+
+
     const result = db.prepare(`
       UPDATE cookies 
-      SET cookie = ?, 
-          updated_at = datetime('now')
-      WHERE domain = ? AND user = ?
-    `).run(cookie, domain, user)
+      SET ${setClauses.join(', ')}
+      WHERE project = ?
+    `).run(...params)
 
     if (result.changes === 0) {
-      // 如果记录不存在，则创建新记录
-      const insertResult = db.prepare(
-        'INSERT INTO cookies (domain, cookie, user, updated_at) VALUES (?, ?, ?, datetime("now"))'
-      ).run(domain, cookie, user)
-
-      return c.json({
-        message: 'Cookie record created successfully',
-        id: insertResult.lastInsertRowid
-      }, 201)
+      // If the record does not exist, we cannot update it.
+      // The previous behavior was to create it, but with UNIQUE(project),
+      // a POST to /cookies should be used for creation.
+      // If we want to create if not exists on PUT, we'd need project, key, and value.
+      // For now, let's assume PUT is only for existing records.
+      // If `key` and `value` are both provided, we could consider an INSERT here,
+      // but it might be better to keep PUT for updates and POST for creations/upserts.
+      if (key && value) { // Only attempt insert if all required fields for a new record are present
+        const insertResult = db.prepare(
+          'INSERT INTO cookies (project, key, value, updated_at) VALUES (?, ?, ?, datetime("now"))'
+        ).run(project, key, value)
+         return c.json({
+          message: 'Cookie record created successfully as it did not exist',
+          id: insertResult.lastInsertRowid
+        }, 201)
+      }
+      return c.json({ error: 'Cookie record not found or no changes made' }, 404)
     }
 
     return c.json({
@@ -113,21 +136,24 @@ queryRouter.put('/cookies/:domain/:user', async (c) => {
       changes: result.changes
     })
   } catch (error: any) {
+    // Catch potential UNIQUE constraint errors if trying to INSERT on PUT without proper ON CONFLICT
+    if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
+        return c.json({ error: `Record with project '${c.req.param('project')}' already exists. Use POST to update or ensure the project name is unique if creating.` }, 409);
+    }
     return c.json({ error: error.message }, 400)
   }
 })
 
-// 新增查询路由
-queryRouter.get('/cookies/:domain/:user', async (c) => {
+// Route to get a cookie record by project
+queryRouter.get('/cookies/:project', async (c) => {
   try {
-    const domain = c.req.param('domain')
-    const user = c.req.param('user')
+    const project = c.req.param('project')
     
     const db = c.env.DB
     const row = db.prepare(`
       SELECT * FROM cookies 
-      WHERE domain = ? AND user = ?
-    `).get(domain, user)
+      WHERE project = ?
+    `).get(project)
 
     if (!row) {
       return c.json({ error: 'Cookie record not found' }, 404)
