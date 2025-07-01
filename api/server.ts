@@ -97,12 +97,14 @@ app.delete('/api/project/:name', async (c) => {
   return c.json({ message: `Project '${name}' deleted successfully` });
 });
 
-// Serve static files for the frontend
-app.use('/*', serveStatic({ root: './dist' }));
-app.get('*', async (c) => {
-  const file = await fs.readFile(path.join(process.cwd(), 'dist', 'index.html'), 'utf-8');
-  return c.html(file);
-});
+// Serve static files for the frontend only in production
+if (process.env.NODE_ENV === 'production') {
+  app.use('/*', serveStatic({ root: './dist' }));
+  app.get('*', async (c) => {
+    const file = await fs.readFile(path.join(process.cwd(), 'dist', 'index.html'), 'utf-8');
+    return c.html(file);
+  });
+}
 
 serve({ port: 3001, fetch: app.fetch }, (info) => {
   console.log(`Server listening on http://localhost:${info.port}`);

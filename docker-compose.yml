@@ -1,24 +1,25 @@
 version: '3.8'
-
 services:
   envconfig:
     build: .
     container_name: envconfig
-    restart: unless-stopped
+    ports:
+      - "3001:3001"
     environment:
       - NODE_ENV=production
+    volumes:
+      - ./db.json:/app/db.json
+      - ./logs:/app/logs
+    restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.envconfig.rule=Host(`config.subx.fun`)"
+      - "traefik.http.routers.envconfig.rule=Host(`config.subx.fun`) && PathPrefix(`/`)"
       - "traefik.http.routers.envconfig.entrypoints=websecure"
       - "traefik.http.routers.envconfig.tls=true"
       - "traefik.http.routers.envconfig.tls.certresolver=letsencrypt"
-      - "traefik.http.services.envconfig.loadbalancer.server.port=5173"
-    networks:
-      - traefik
-    volumes:
-      - /home/ubuntu/envconfig/db.json:/app/db.json
+      - "traefik.http.services.envconfig.loadbalancer.server.port=3001"
 
 networks:
-  traefik:
-    external: true
+  default:
+    external:
+      name: traefik

@@ -1,24 +1,18 @@
-# 基于官方 Node 镜像
-FROM node:20-alpine
-
-# 设置工作目录
+# Dockerfile for hono-sqlite production
+FROM node:lts-alpine3.21 AS builder
 WORKDIR /app
-
-# 拷贝依赖文件
-COPY package.json pnpm-lock.yaml tsconfig.server.json ./
-
-# 安装 pnpm
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
-
-# 拷贝项目文件
+COPY package.json pnpm-lock.yaml ./
+RUN apk --no-cache upgrade && npm install -g pnpm && pnpm install --frozen-lockfile
 COPY . .
-RUN ls -l api/server.ts
-
-# 构建前端
 RUN pnpm build
 
-# 暴露端口（Vite 默认 5173，API 3001）
-EXPOSE 5173 3001
-
-# 启动服务
-CMD ["pnpm", "start"]
+FROM node:lts-alpine3.21 AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package.json pnpm-lock.yaml ./
+RUN apk --no-cache upgrade && npm install -g pnpm && pnpm install --prod --frozen-lockfile
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/.env ./.env
+COPY --from=builder /app/db.json ./db.json
+EXPOSE 3001
+CMD ["node", "dist/server.js"]
